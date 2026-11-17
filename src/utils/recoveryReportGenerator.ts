@@ -1,7 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, PDFFont } from 'pdf-lib';
 import { CourseType } from '../types';
 import { sanitizeFileName } from './security';
-import { APP_FOOTER_CREDITS } from '../constants/credits';
+import ifspLogoInline from '../assets/images/Marca_IFSP_SJP_V-01.png?inline';
 
 export interface RecoveryReportData {
   course: CourseType | string;
@@ -89,29 +89,59 @@ export async function generateRecoveryReportPdf(
 
   // 1. EMBED IFSP LOGO
   let logoDrawn = false;
-  try {
-    const response = await fetch('/assets/img/Marca_IFSP_SJP_V-01.png');
-    if (response.ok) {
-      const imgBuffer = await response.arrayBuffer();
-      const pngImage = await pdfDoc.embedPng(imgBuffer);
 
-      // Desired logo display dimensions (proportional, increased 50% from 72 to 108)
-      const logoWidth = 108;
-      const logoHeight = (logoWidth * pngImage.height) / pngImage.width;
-      const logoX = (pageWidth - logoWidth) / 2;
-      const logoTop = 812;
-      const logoY = logoTop - logoHeight;
+  const drawLogoImage = (pngImage: Awaited<ReturnType<typeof pdfDoc.embedPng>>) => {
+    // Desired logo display dimensions (proportional, increased 50% from 72 to 108)
+    const logoWidth = 108;
+    const logoHeight = (logoWidth * pngImage.height) / pngImage.width;
+    const logoX = (pageWidth - logoWidth) / 2;
+    const logoTop = 812;
+    const logoY = logoTop - logoHeight;
 
-      page.drawImage(pngImage, {
-        x: logoX,
-        y: logoY,
-        width: logoWidth,
-        height: logoHeight,
-      });
-      logoDrawn = true;
+    page.drawImage(pngImage, {
+      x: logoX,
+      y: logoY,
+      width: logoWidth,
+      height: logoHeight,
+    });
+    logoDrawn = true;
+  };
+
+  if (typeof ifspLogoInline === 'string' && ifspLogoInline.startsWith('data:')) {
+    try {
+      const pngImage = await pdfDoc.embedPng(ifspLogoInline);
+      drawLogoImage(pngImage);
+    } catch (err) {
+      console.warn('Could not embed inline PNG logo:', err);
     }
-  } catch (err) {
-    console.warn('Could not load PNG logo, drawing header text:', err);
+  }
+
+  if (!logoDrawn) {
+    const baseUrl = import.meta.env.BASE_URL || './';
+    const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+    const logoCandidates = Array.from(
+      new Set([
+        ifspLogoInline,
+        `${normalizedBase}assets/img/Marca_IFSP_SJP_V-01.png`,
+        './assets/img/Marca_IFSP_SJP_V-01.png',
+        '/fastpdfmerge/assets/img/Marca_IFSP_SJP_V-01.png',
+        '/assets/img/Marca_IFSP_SJP_V-01.png',
+      ])
+    ).filter((url): url is string => Boolean(url) && !url.startsWith('data:'));
+
+    for (const logoUrl of logoCandidates) {
+      try {
+        const response = await fetch(logoUrl);
+        if (!response.ok) continue;
+
+        const imgBuffer = await response.arrayBuffer();
+        const pngImage = await pdfDoc.embedPng(imgBuffer);
+        drawLogoImage(pngImage);
+        break;
+      } catch (err) {
+        console.warn(`Could not load PNG logo from ${logoUrl}:`, err);
+      }
+    }
   }
 
   if (!logoDrawn) {
@@ -368,28 +398,6 @@ export async function generateRecoveryReportPdf(
     });
   });
 
-  const footerText = sanitizePdfText(APP_FOOTER_CREDITS);
-
-  // Document Footer
-  const docNotice = 'Documento gerado eletronicamente · IFSP Câmpus São José do Rio Preto';
-  const docNoticeWidth = fontRegular.widthOfTextAtSize(docNotice, 7.5);
-  page.drawText(docNotice, {
-    x: (pageWidth - docNoticeWidth) / 2,
-    y: 33,
-    size: 7.5,
-    font: fontRegular,
-    color: rgb(0.55, 0.55, 0.55),
-  });
-
-  const fWidth = fontRegular.widthOfTextAtSize(footerText, 6.5);
-  page.drawText(footerText, {
-    x: (pageWidth - fWidth) / 2,
-    y: 21,
-    size: 6.5,
-    font: fontRegular,
-    color: rgb(0.68, 0.68, 0.68),
-  });
-
   if (resolvedTeachers.length > 4) {
     const overflowTeachers = resolvedTeachers.slice(0);
     for (let start = 0; start < overflowTeachers.length; start += 8) {
@@ -434,21 +442,6 @@ export async function generateRecoveryReportPdf(
           font: fontRegular,
           color: rgb(0.25, 0.25, 0.25),
         });
-      });
-
-      signaturePage.drawText(docNotice, {
-        x: (pageWidth - docNoticeWidth) / 2,
-        y: 33,
-        size: 7.5,
-        font: fontRegular,
-        color: rgb(0.55, 0.55, 0.55),
-      });
-      signaturePage.drawText(footerText, {
-        x: (pageWidth - fWidth) / 2,
-        y: 21,
-        size: 6.5,
-        font: fontRegular,
-        color: rgb(0.68, 0.68, 0.68),
       });
     }
   }

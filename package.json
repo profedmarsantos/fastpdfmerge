@@ -3,10 +3,10 @@
   "private": true,
   "version": "1.0.0",
   "description": "Fast PDF Merge Educacional - Aplicação web para mesclar arquivos PDF diretamente no navegador",
-  "homepage": "https://profedmarsantos.github.io/FastPDFmerge",
+  "homepage": "https://profedmarsantos.github.io/fastpdfmerge",
   "repository": {
     "type": "git",
-    "url": "https://github.com/profedmarsantos/FastPDFmerge.git"
+    "url": "https://github.com/profedmarsantos/fastpdfmerge.git"
   },
   "type": "module",
   "scripts": {

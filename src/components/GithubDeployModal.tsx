@@ -19,9 +19,9 @@ export const GithubDeployModal: React.FC<GithubDeployModalProps> = ({ isOpen, on
 
   const steps = [
     {
-      title: '1. Repositório no GitHub: "FastPDFmerge"',
-      desc: 'Para subir alterações de código e uma nova versão no repositório configurado:',
-      cmd: `git add .\ngit commit -m "chore: atualizacao de versao"\ngit push origin main`,
+      title: '1. Repositório no GitHub: "fastpdfmerge"',
+      desc: 'Para subir alterações de código e uma nova versão no repositório profedmarsantos/fastpdfmerge:',
+      cmd: `git remote set-url origin https://github.com/profedmarsantos/fastpdfmerge.git\ngit add .\ngit commit -m "chore: atualizacao de versao"\ngit push origin main`,
     },
     {
       title: '2. Deploy Automático no GitHub Pages',
@@ -30,7 +30,7 @@ export const GithubDeployModal: React.FC<GithubDeployModalProps> = ({ isOpen, on
     },
     {
       title: '3. Acesso à aplicação publicada',
-      desc: 'Após a execução do workflow, acesse a URL de produção configurada no GitHub Pages.',
+      desc: 'Após a execução do workflow, acesse a versão publicada em: https://profedmarsantos.github.io/fastpdfmerge/',
       cmd: null,
     },
   ];
@@ -49,7 +49,7 @@ export const GithubDeployModal: React.FC<GithubDeployModalProps> = ({ isOpen, on
             </div>
             <div>
               <h3 className="text-sm font-semibold text-neutral-900">Configuração GitHub Pages</h3>
-              <p className="text-xs text-neutral-500">Deploy automatizado no repositório FastPDFmerge</p>
+              <p className="text-xs text-neutral-500">Deploy automatizado no repositório fastpdfmerge</p>
             </div>
           </div>
           <button

@@ -159,7 +159,7 @@ function validateAndSanitizeRecord(raw: unknown): AcademicRecord | null {
     ? obj.teachers
         .map((teacher) => sanitizeStringField(teacher, 100))
         .filter(Boolean)
-        .slice(0, 10)
+        .slice(0, 2)
     : [];
   const legacyTeacher = sanitizeStringField(obj.teacher, 100);
 

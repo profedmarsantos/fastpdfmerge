@@ -243,7 +243,8 @@ export const AcademicRegistryTab: React.FC<AcademicRegistryTabProps> = ({
       const initialSelection = new Set<number>();
       parsedRecords.forEach((record, index) => {
         const key = getAcademicRecordKey(record);
-        if (!existingKeys.has(key)) {
+        const hasValidTeacherCount = record.teachers.length >= 1 && record.teachers.length <= 2;
+        if (hasValidTeacherCount && !existingKeys.has(key)) {
           initialSelection.add(index);
           existingKeys.add(key);
         }
@@ -263,6 +264,16 @@ export const AcademicRegistryTab: React.FC<AcademicRegistryTabProps> = ({
     const selectedRecords = importedRecords.filter((_, index) => selectedImportIndexes.has(index));
     if (selectedRecords.length === 0) {
       setErrorMessage('Selecione ao menos uma disciplina para importar.');
+      return;
+    }
+
+    const invalidTeacherRecord = selectedRecords.find(
+      (record) => record.teachers.length < 1 || record.teachers.length > 2
+    );
+    if (invalidTeacherRecord) {
+      setErrorMessage(
+        `A disciplina "${invalidTeacherRecord.subject}" possui ${invalidTeacherRecord.teachers.length} professores. Apenas disciplinas com 1 ou 2 professores são aceitas.`
+      );
       return;
     }
 
@@ -288,8 +299,13 @@ export const AcademicRegistryTab: React.FC<AcademicRegistryTabProps> = ({
       return;
     }
 
-    // Salva o nome do professor no localStorage para uso futuro
+    // Validação estrita: apenas disciplinas com 1 ou 2 professores são válidas
     const savedTeachers = teachers.map((teacher) => teacher.trim()).filter(Boolean);
+    if (savedTeachers.length < 1 || savedTeachers.length > 2) {
+      setErrorMessage('A disciplina deve possuir 1 ou 2 professores válidos (não é permitido mais de 2).');
+      return;
+    }
+
     if (persistData && savedTeachers[0]) {
       saveTeacherName(savedTeachers[0]);
     }
@@ -420,23 +436,28 @@ export const AcademicRegistryTab: React.FC<AcademicRegistryTabProps> = ({
                 const isExisting = records.some(
                   (existingRecord) => getAcademicRecordKey(existingRecord) === getAcademicRecordKey(record)
                 );
+                const hasInvalidTeacherCount = record.teachers.length < 1 || record.teachers.length > 2;
                 return (
                   <label
                     key={`${record.diaryId}-${record.code}-${index}`}
-                    className="flex items-start gap-3 p-3 cursor-pointer hover:bg-sky-50/50"
+                    className={`flex items-start gap-3 p-3 ${
+                      hasInvalidTeacherCount ? 'cursor-not-allowed bg-rose-50/40 opacity-80' : 'cursor-pointer hover:bg-sky-50/50'
+                    }`}
                   >
                     <input
                       type="checkbox"
-                      checked={selectedImportIndexes.has(index)}
-                      onChange={() =>
+                      disabled={hasInvalidTeacherCount}
+                      checked={!hasInvalidTeacherCount && selectedImportIndexes.has(index)}
+                      onChange={() => {
+                        if (hasInvalidTeacherCount) return;
                         setSelectedImportIndexes((current) => {
                           const next = new Set(current);
                           if (next.has(index)) next.delete(index);
                           else next.add(index);
                           return next;
-                        })
-                      }
-                      className="mt-0.5 accent-neutral-900"
+                        });
+                      }}
+                      className="mt-0.5 accent-neutral-900 disabled:cursor-not-allowed"
                     />
                     <span className="min-w-0 flex-1 text-xs">
                       <span className="block font-semibold text-neutral-900">
@@ -448,7 +469,12 @@ export const AcademicRegistryTab: React.FC<AcademicRegistryTabProps> = ({
                       <span className="block mt-0.5 font-mono text-[11px] text-neutral-500">
                         Turma {record.classCode} · Diário {record.diaryId} · {record.stageCount} etapa(s)
                       </span>
-                      {isExisting && (
+                      {hasInvalidTeacherCount && (
+                        <span className="block mt-1 text-[11px] font-medium text-rose-700">
+                          Possui {record.teachers.length} professores (apenas 1 ou 2 professores são aceitos).
+                        </span>
+                      )}
+                      {isExisting && !hasInvalidTeacherCount && (
                         <span className="block mt-1 text-[11px] font-medium text-amber-700">
                           Já cadastrado; será ignorado caso seja selecionado.
                         </span>
@@ -489,15 +515,22 @@ export const AcademicRegistryTab: React.FC<AcademicRegistryTabProps> = ({
               <span className="flex items-center gap-1.5 text-xs font-semibold text-neutral-900">
                 <User className="w-3.5 h-3.5 text-neutral-600" />
                 <span>Professor(a)</span>
+                <span className="text-[11px] font-normal text-neutral-500">(1 ou 2)</span>
               </span>
-              <button
-                type="button"
-                onClick={() => setTeachers((current) => [...current, ''])}
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-neutral-700 hover:text-neutral-950"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                Adicionar professor(a)
-              </button>
+              {teachers.length < 2 ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setTeachers((current) => (current.length < 2 ? [...current, ''] : current))
+                  }
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-neutral-700 hover:text-neutral-950 cursor-pointer"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  Adicionar 2º professor(a)
+                </button>
+              ) : (
+                <span className="text-[11px] text-neutral-500">Limite máximo: 2 professores</span>
+              )}
             </div>
             {teachers.map((teacher, index) => (
               <div key={index} className="flex gap-2">
